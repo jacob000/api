@@ -5,7 +5,7 @@ use Silex\Provider;
 use Silex\Aplication;
 
 $app = new Silex\Application();
-$app [ 'debug'] = true;
+// $app [ 'debug'] = true;
 
 
 

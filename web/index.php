@@ -47,55 +47,38 @@ $app->register(new Silex\Provider\DoctrineServiceProvider(), array(
 // funkcja logowania i autoryzacji, dane autoryzujące pobierane z servera, porównanie z danymi z bazy, 
 // jeśli zgadza się to przekierowanie na widok usera, jesli nie to przekierowanie do strony logowania
 $app->post('/login', function (Request $request) use ($app) {
-
-    // $username = $app['request']->server->get('PHP_AUTH_USER');
-    // $password = $app['request']->server->get('PHP_AUTH_PW');
-    
-    $username = $request->get('login');
-    $password = $request->get('password');
     
     $user=array(
-        'username'=>$username,
-        'password'=>$password,
+        'username'=>htmlentities($request->get('login')),
+        'password'=>htmlentities($request->get('password')),
     );
     
     $constraint = new Assert\Collection(array(
         'username' => new Assert\Length(array('min' =>6, 'max' => 16)),
-        // 'usernmae' => new Assert\NotBlank(),
         'username' => new Assert\NotNull(),
-        'username' => new Assert\Regex(array('pattern' => '/^[a-zA-z0-9]+$/')),
-        'password' => new Assert\Length(array('min' =>8)), 
+        'username' => new Assert\NotBlank(),
+        'password' => new Assert\Length(array('min' =>8, 'max' => 20)),
+        'password' => new Assert\NotNull(),
+        'password' => new Assert\NotBlank(),
     ));    
     
     $errors = $app['validator']->validate($user, $constraint);
-    // return $errors;
-    // if (!empty($username) and !empty($password)) {
     if (count($errors)===0) {
        
-                
-            // $sql= "select id, login, email FROM users WHERE login='".$username."' and password='".$password."'";
-            $sql= "select * FROM users WHERE login='".$username."'";
+            $sql= "select * FROM users WHERE login='".$user['username']."'";
             $post = $app['db']->fetchAssoc($sql);
             
-            if (password_verify($password, $post['password'])) 
+            if (password_verify($user['password'], $post['password'])) 
             {
                 $app['session']->set('user', array('user_id' => $post['id'],
-                                                'username' => $username,
+                                                'login' => $post['login'],
                                                 'email' => $post['email']
                                                 ));
                 return $app->redirect('/api/web/index.php/user/'.$post['id']);
             }
             
-            // if ( $post!= false) {
-            //     $app['session']->set('user', array('user_id' => $post['id'],
-            //                                     'username' => $username,
-            //                                     'email' => $post['email']
-            //                                     ));
-            //     return $app->redirect('/api/web/index.php/user/'.$post['id']);
-            // }
-
             $response = new Response();
-            $response->headers->set('WWW-Authenticate', sprintf('Basic realm="%s"', 'site_login'));
+            $response->headers->set('WWW-Authenticate', sprintf('Basic realm="%s"', 'Blędne dane logowania'));
             $response->setStatusCode(401, 'Please sign in.');
             return $response;
     }
@@ -109,7 +92,7 @@ $app->post('/login', function (Request $request) use ($app) {
 $app->get('/logout', function (Request $request) use ($app) {
     $app['session']->clear();
     
-    // return $app->redirect('/api/web/index.php/login');
+    // return $app->redirect('/api/web/index.php/login'); //nie można przekierować tak bo przekierowuje na get a nie post a logowanie wymaga post
     return $app->json( 201);
 });
 
@@ -124,7 +107,7 @@ $app->get('/user/{id}', function ($id) use ($app) {
         // return $response;
     }
     
-    $sql = "SELECT id,login,email FROM users WHERE id = ?";
+    $sql = "SELECT id,login,email,active_lesson FROM users WHERE id = ?";
     $post = $app['db']->fetchAssoc($sql, array((int) $id));
 
     return $app->json($post, 201);
