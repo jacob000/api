@@ -116,17 +116,42 @@ $app->get('/user/{id}', function ($id) use ($app) {
 //funkcja dodawania nowego użytkownika//
 $app->post('/user', function (Request $request ) use ($app) {
     
-    $hash=password_hash($request->get('password'), PASSWORD_BCRYPT);
-    
-    $user = array(
-        'login'=>$request->get('login'),
-        'password'=>$hash,
-        'email'=>$request->get('email')
+    $data_validation=array(
+        'username'=>htmlentities($request->get('login')),
+        'password'=>htmlentities($request->get('password')),
+        'email'=>htmlentities($request->get('email')),
     );
+
     
-    $app['db']->insert('users',$user);
+    $constraint = new Assert\Collection(array(
+        'username' => new Assert\Length(array('min' =>6, 'max' => 16)),
+        'username' => new Assert\NotNull(),
+        'username' => new Assert\NotBlank(),
+        'password' => new Assert\Length(array('min' =>8, 'max' => 20)),
+        'password' => new Assert\NotNull(),
+        'password' => new Assert\NotBlank(),
+        'email' => new Assert\Email(),
+    ));    
     
-    return $app->json($user, 201);
+    $errors = $app['validator']->validate($data_validation, $constraint);
+    if (count($errors)===0) {
+        $hash=password_hash($request->get('password'), PASSWORD_BCRYPT);
+        
+        $user = array(
+            'login'=>$data_validation['username'],
+            'password'=>$hash,
+            'email'=>$data_validation['email'],
+        );
+        
+        $app['db']->insert('users',$user);
+        
+        return $app->json($user, 201);
+    }
+    
+    $response = new Response();
+    $response->headers->set('WWW-Authenticate', sprintf('Basic realm="%s"', 'Bledne dane formularza'));
+    $response->setStatusCode(406, 'Nie kombinuj z danymi');
+    return $response;
 });
 
 //uaktualnienia danych użytkownika dane przesyłane PUT, warunke użytkownik musi być zalogowany
@@ -136,13 +161,32 @@ $app->put('/user/{id}', function (Request $request ) use ($app) {
         return $app->redirect('/api/web/index.php/login');
     }
     
-    $user = array(
-        'login'=>$request->get('name'),
-        'password'=>$request->get('password'),
-        'email'=>$request->get('email')
+    $data_validation=array(
+        'username'=>htmlentities($request->get('login')),
+        'password'=>htmlentities($request->get('password')),
+        'email'=>htmlentities($request->get('email')),
     );
 
-    return $app->json($user, 201);
+    $constraint = new Assert\Collection(array(
+        'username' => new Assert\Length(array('min' =>6, 'max' => 16)),
+        'username' => new Assert\NotNull(),
+        'username' => new Assert\NotBlank(),
+        'password' => new Assert\Length(array('min' =>8, 'max' => 20)),
+        'password' => new Assert\NotNull(),
+        'password' => new Assert\NotBlank(),
+        'email' => new Assert\Email(),
+    ));    
+    
+    $errors = $app['validator']->validate($data_validation, $constraint);
+    if (count($errors)===0) {
+        $user = array(
+            'login'=>$request->get('login'),
+            'password'=>$request->get('password'),
+            'email'=>$request->get('email')
+        );
+
+        return $app->json($user, 201);
+    }
 });
 
 $app->run();
