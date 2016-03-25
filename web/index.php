@@ -96,24 +96,7 @@ $app->get('/logout', function (Request $request) use ($app) {
     return $app->json( 201);
 });
 
-//pobieranie danych o użytkowniku z {id} warunkiem musi być zalogowanie 
-$app->get('/user/{id}', function ($id) use ($app) {
-    
-    if (null === $user = $app['session']->get('user')) {
-        return $app->redirect('/api/web/index.php/login');
-        
-        // $response = new Response();
-        // $response->setStatusCode(401, 'Please sign in.');
-        // return $response;
-    }
-    
-    $sql = "SELECT id,login,email,active_lesson FROM users WHERE id = ?";
-    $post = $app['db']->fetchAssoc($sql, array((int) $id));
-
-    return $app->json($post, 201);
-});
-
-//funkcja dodawania nowego użytkownika//
+//funkcja dodawania nowego użytkownika
 $app->post('/user', function (Request $request ) use ($app) {
     
     $data_validation=array(
@@ -154,6 +137,23 @@ $app->post('/user', function (Request $request ) use ($app) {
     return $response;
 });
 
+//pobieranie danych o użytkowniku z {id} warunkiem musi być zalogowanie 
+$app->get('/user/{id}', function ($id) use ($app) {
+    
+    if (null === $user = $app['session']->get('user')) {
+        return $app->redirect('/api/web/index.php/login');
+        
+        // $response = new Response();
+        // $response->setStatusCode(401, 'Please sign in.');
+        // return $response;
+    }
+    
+    $sql = "SELECT id,login,email,active_lesson FROM users WHERE id = ?";
+    $post = $app['db']->fetchAssoc($sql, array((int) $id));
+
+    return $app->json($post, 201);
+});
+
 //uaktualnienia danych użytkownika dane przesyłane PUT, warunke użytkownik musi być zalogowany
 $app->put('/user/{id}', function (Request $request ) use ($app) {
 
@@ -188,5 +188,36 @@ $app->put('/user/{id}', function (Request $request ) use ($app) {
         return $app->json($user, 201);
     }
 });
+
+//usuwanie uzytkownika z bazy danych, warunek musi być zalogowany
+$app->delete('/user/{id}', function ($id) use ($app) {
+    
+});
+
+//zwraca wszelkie dostepne kursy
+$app->get('course', function () use ($app) {
+    $sql = "SELECT * FROM course";
+    $post = $app['db']->fetchAll($sql);
+
+    return $app->json($post, 201);
+});
+
+//zwraca wszelkie dostepne lekcje w danym kursie
+$app->get('course/{id}', function ($id) use ($app) {
+    $sql = "select * from lesson where id_course= ?";
+    $post = $app['db']->fetchAll($sql, array((int) $id));
+
+    return $app->json($post, 201);
+});
+
+//zwraca lekcje z konkretnego kursu
+$app->get('course/{id_course}/{id_lesson}', function ($id) use ($app) {
+    $sql = "select * from lesson where id_course='".$id_course."' and id='".id_lesson."'";
+    return $id['id_lesson'];
+    $post = $app['db']->fetchAssoc($sql);
+
+    return $app->json($post, 201);
+});
+
 
 $app->run();
