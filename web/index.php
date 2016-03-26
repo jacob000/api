@@ -141,24 +141,29 @@ $app->post('/user', function (Request $request ) use ($app) {
 $app->get('/user/{id}', function ($id) use ($app) {
     
     if (null === $user = $app['session']->get('user')) {
-        return $app->redirect('/api/web/index.php/login');
-        
-        // $response = new Response();
-        // $response->setStatusCode(401, 'Please sign in.');
-        // return $response;
+        // return $app->redirect('/api/web/index.php/login');
+        $response = new Response();
+        $response->setStatusCode(401, 'Please sign in.');
+        return $response;
     }
-    
-    $sql = "SELECT id,login,email,active_lesson FROM users WHERE id = ?";
-    $post = $app['db']->fetchAssoc($sql, array((int) $id));
-
-    return $app->json($post, 201);
+    if (is_numeric($id)) {
+        $sql = "SELECT id,login,email,active_lesson FROM users WHERE id = ?";
+        $post = $app['db']->fetchAssoc($sql, array((int) $id));
+        return $app->json($post, 201);
+    }
+    $response = new Response();
+    $response->setStatusCode(406, 'Nie kombinuj z danymi');
+    return $response;
 });
 
 //uaktualnienia danych użytkownika dane przesyłane PUT, warunke użytkownik musi być zalogowany
 $app->put('/user/{id}', function (Request $request ) use ($app) {
 
     if (null === $user = $app['session']->get('user')) {
-        return $app->redirect('/api/web/index.php/login');
+        // return $app->redirect('/api/web/index.php/login');
+        $response = new Response();
+        $response->setStatusCode(401, 'Please sign in.');
+        return $response;
     }
     
     $data_validation=array(
@@ -166,7 +171,6 @@ $app->put('/user/{id}', function (Request $request ) use ($app) {
         'password'=>htmlentities($request->get('password')),
         'email'=>htmlentities($request->get('email')),
     );
-
     $constraint = new Assert\Collection(array(
         'username' => new Assert\Length(array('min' =>6, 'max' => 16)),
         'username' => new Assert\NotNull(),
@@ -189,9 +193,14 @@ $app->put('/user/{id}', function (Request $request ) use ($app) {
     }
 });
 
-//usuwanie uzytkownika z bazy danych, warunek musi być zalogowany
+//usuwanie uzytkownika z bazy danych, warunek musi być zalogowany, do przemyslenia
 $app->delete('/user/{id}', function ($id) use ($app) {
-    
+    if (null === $user = $app['session']->get('user')) {
+        // return $app->redirect('/api/web/index.php/login');
+        $response = new Response();
+        $response->setStatusCode(401, 'Please sign in.');
+        return $response;
+    }
 });
 
 //zwraca wszelkie dostepne kursy
@@ -211,9 +220,11 @@ $app->get('course/{id}', function ($id) use ($app) {
 });
 
 //zwraca lekcje z konkretnego kursu
-$app->get('course/{id_course}/{id_lesson}', function ($id) use ($app) {
-    $sql = "select * from lesson where id_course='".$id_course."' and id='".id_lesson."'";
-    return $id['id_lesson'];
+$app->get('course/{courseID}/{lessonID}', function ($courseID, $lessonID) use ($app) {
+    
+    
+    
+    $sql = "select * from lesson where id_course='".$courseID."' and id='".$lessonID."'";
     $post = $app['db']->fetchAssoc($sql);
 
     return $app->json($post, 201);
