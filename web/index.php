@@ -42,7 +42,12 @@ $app->register(new Silex\Provider\DoctrineServiceProvider(), array(
 // $app->get('user/{id}', 'web\\user\\UserController::ShowUser');
 // $app->post('user', 'web\\user\\UserController::CreateUser');
 
+$app->get('/', function () use ($app) {
+    $sql = "SELECT * FROM frontpage";
+    $post = $app['db']->fetchAll($sql);
 
+    return $app->json($post, 201);
+});
 
 // funkcja logowania i autoryzacji, dane autoryzujące pobierane z servera, porównanie z danymi z bazy, 
 // jeśli zgadza się to przekierowanie na widok usera, jesli nie to przekierowanie do strony logowania
@@ -140,13 +145,13 @@ $app->post('/user', function (Request $request ) use ($app) {
 //pobieranie danych o użytkowniku z {id} warunkiem musi być zalogowanie 
 $app->get('/user/{id}', function ($id) use ($app) {
     
-    if (null === $user = $app['session']->get('user')) {
-        return $app->redirect('/api/web/index.php/login');
+    // if (null === $user = $app['session']->get('user')) {
+    //     return $app->redirect('/api/web/index.php/login');
         
-        // $response = new Response();
-        // $response->setStatusCode(401, 'Please sign in.');
-        // return $response;
-    }
+    //     // $response = new Response();
+    //     // $response->setStatusCode(401, 'Please sign in.');
+    //     // return $response;
+    // }
     
     $sql = "SELECT id,login,email,active_lesson FROM users WHERE id = ?";
     $post = $app['db']->fetchAssoc($sql, array((int) $id));
