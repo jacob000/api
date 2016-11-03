@@ -41,7 +41,7 @@ $app->register(new Silex\Provider\DoctrineServiceProvider(), array(
 
 // $app->get('user/{id}', 'web\\user\\UserController::ShowUser');
 // $app->post('user', 'web\\user\\UserController::CreateUser');
-
+//funkcja pobierania artykułów na główną, działa i nie ruszać
 $app->get('/', function () use ($app) {
     $sql = "SELECT * FROM frontpage";
     $post = $app['db']->fetchAll($sql);
@@ -51,6 +51,7 @@ $app->get('/', function () use ($app) {
 
 // funkcja logowania i autoryzacji, dane autoryzujące pobierane z servera, porównanie z danymi z bazy, 
 // jeśli zgadza się to przekierowanie na widok usera, jesli nie to przekierowanie do strony logowania
+// chyba działa ale trzeba testować, dane podaje się w body/form-data
 $app->post('/login', function (Request $request) use ($app) {
     
     $user=array(
@@ -79,6 +80,7 @@ $app->post('/login', function (Request $request) use ($app) {
                                                 'login' => $post['login'],
                                                 'email' => $post['email']
                                                 ));
+                // return $app->json(200);
                 return $app->redirect('/api/web/index.php/user/'.$post['id']);
             }
             
@@ -145,13 +147,13 @@ $app->post('/user', function (Request $request ) use ($app) {
 //pobieranie danych o użytkowniku z {id} warunkiem musi być zalogowanie 
 $app->get('/user/{id}', function ($id) use ($app) {
     
-    // if (null === $user = $app['session']->get('user')) {
-    //     return $app->redirect('/api/web/index.php/login');
+    if (null === $user = $app['session']->get('user')) {
+        // return $app->redirect('/api/web/index.php/login');
         
-    //     // $response = new Response();
-    //     // $response->setStatusCode(401, 'Please sign in.');
-    //     // return $response;
-    // }
+        $response = new Response();
+        $response->setStatusCode(401, 'Please sign in.');
+        return $response;
+    }
     
     $sql = "SELECT id,login,email,active_lesson FROM users WHERE id = ?";
     $post = $app['db']->fetchAssoc($sql, array((int) $id));
@@ -199,15 +201,25 @@ $app->delete('/user/{id}', function ($id) use ($app) {
     
 });
 
-//zwraca wszelkie dostepne kursy
-$app->get('course', function () use ($app) {
-    $sql = "SELECT * FROM course";
+//zwraca wszelkie dostepne kursy, dostepne dla wszystkich, działa, nie ruszać
+$app->get('courses', function () use ($app) {
+    $sql = "SELECT
+  id_cours,name,img,description,
+  COUNT(id_course) AS count_lesson
+FROM
+course
+  LEFT JOIN
+    lesson ON (
+      course.id_cours=lesson.id_course
+    )
+GROUP BY
+  name";
     $post = $app['db']->fetchAll($sql);
 
     return $app->json($post, 201);
 });
 
-//zwraca wszelkie dostepne lekcje w danym kursie
+//zwraca wszelkie dostepne lekcje w danym kursie dostepne dla wszystkich i już działa, nie ruszać 
 $app->get('course/{id}', function ($id) use ($app) {
     $sql = "select * from lesson where id_course= ?";
     $post = $app['db']->fetchAll($sql, array((int) $id));
@@ -215,10 +227,10 @@ $app->get('course/{id}', function ($id) use ($app) {
     return $app->json($post, 201);
 });
 
-//zwraca lekcje z konkretnego kursu
-$app->get('course/{id_course}/{id_lesson}', function ($id) use ($app) {
-    $sql = "select * from lesson where id_course='".$id_course."' and id='".id_lesson."'";
-    return $id['id_lesson'];
+//zwraca lekcje z konkretnego kursu nie działa, coś jest nie tak :(
+$app->get('course/{id_course}/lesson/{id_lesson}', function ($id_course, $id_lesson) use ($app) {
+    $sql = "select * from lesson where id_course='".$id_course+"' and id_lesson='".$id_lesson."'";
+    //return $id['id_lesson'];
     $post = $app['db']->fetchAssoc($sql);
 
     return $app->json($post, 201);
